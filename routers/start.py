@@ -35,9 +35,7 @@ async def cmd_start(message: types.Message, command: CommandObject, state: FSMCo
 
 
 @router.callback_query(StoryState.waiting_for_subscription, F.data == "check_sub")
-async def verify_subscription(
-    callback: types.CallbackQuery, state: FSMContext
-):
+async def verify_subscription(callback: types.CallbackQuery, state: FSMContext):
     from loader import bot
 
     user_sub = await bot.get_chat_member(
@@ -58,7 +56,7 @@ async def verify_subscription(
         )
         schedule_user_job(
             job_id=f"15min_survey:{callback.from_user.id}",
-            run_date=datetime.now() + timedelta(minutes=15),
+            run_date=datetime.now() + timedelta(minutes=5),
             func=send_15min_survey,
             args=[callback.message.chat.id],
         )
