@@ -3,16 +3,21 @@ from datetime import datetime, timedelta
 from aiogram.types import InputMediaPhoto, FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from loader import bot
+from loader import bot, scheduler
 from utils.keyboards import get_feedback_kb
 
 
 def get_next_working_time():
-    run_date = datetime.now() + timedelta(days=1)
+    run_date = datetime.now(tz=scheduler.timezone) + timedelta(days=1)
     if run_date.hour < 9:
-        return run_date.replace(hour=10, minute=0)
+        return run_date.replace(hour=10, minute=0, second=0, microsecond=0)
     if run_date.hour >= 21:
-        return (run_date + timedelta(days=1)).replace(hour=10, minute=0)
+        return (run_date + timedelta(days=1)).replace(
+            hour=10,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
     return run_date
 
 
