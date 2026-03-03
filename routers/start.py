@@ -10,7 +10,7 @@ from db.crud import add_user, add_event
 from exception.db import UserNotFound
 from loader import logger
 from data.story_content import text_hello, text_subscription_is_confirmed
-from utils.scheduler import send_15min_survey, schedule_user_job
+from utils.scheduler import clear_user_story_jobs, send_15min_survey, schedule_user_job
 
 router = Router(name="start_router")
 
@@ -19,6 +19,7 @@ router = Router(name="start_router")
 async def cmd_start(message: types.Message, command: CommandObject, state: FSMContext):
     await state.set_state(StoryState.waiting_for_subscription)
 
+    clear_user_story_jobs(tg_id=message.from_user.id)
     utm = (command.args or "").strip()
     user_name = (
         message.from_user.username

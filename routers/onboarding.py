@@ -7,7 +7,7 @@ from aiogram.types import FSInputFile
 
 from data.states import StoryState
 from data.story_content import text_extra_no
-from db.crud import add_event
+from utils.scheduler import clear_user_story_jobs
 from loader import bot
 
 router = Router()
@@ -41,6 +41,7 @@ async def process_decline(callback: types.CallbackQuery):
 
 @router.callback_query(F.data == "extra_yes")
 async def process_accept(callback: types.CallbackQuery, state: FSMContext):
+    clear_user_story_jobs(tg_id=callback.from_user.id)
 
     await state.set_state(StoryState.choosing_experience)
 

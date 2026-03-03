@@ -2,6 +2,7 @@ from collections.abc import Callable
 from datetime import datetime
 from data.states import StoryState
 from aiogram import Bot
+from apscheduler.jobstores.base import JobLookupError
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from loader import bot, dp, scheduler
 
@@ -29,6 +30,33 @@ def schedule_user_job(
         coalesce=True,
         max_instances=1,
     )
+
+
+def clear_user_story_jobs(*, tg_id: int) -> None:
+    """Удаляет отложенные задачи пользователя, чтобы цепочки не пересекались."""
+    job_prefixes = (
+        "15min_survey",
+        "novice_text_2",
+        "novice_text_3",
+        "novice_text_4",
+        "novice_text_5",
+        "novice_text_6",
+        "novice_text_7",
+        "novice_text_8",
+        "pro_text_8",
+        "pro_text_9",
+        "pro_text_10",
+        "pro_text_11",
+        "pro_text_12",
+        "pro_reviews",
+        "continued_path",
+    )
+
+    for prefix in job_prefixes:
+        try:
+            scheduler.remove_job(job_id=f"{prefix}:{tg_id}")
+        except JobLookupError:
+            continue
 
 
 async def send_15min_survey(chat_id: int):
