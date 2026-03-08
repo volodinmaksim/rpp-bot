@@ -11,8 +11,8 @@ from data.story_content import (
 )
 from loader import dp, bot
 from utils.common import my_send_text_and_photos, get_next_working_time
+from utils.keyboards import get_reviews_kb
 from utils.scheduler import schedule_user_job
-
 
 router = Router()
 
@@ -44,11 +44,16 @@ async def send_pro_text_12(chat_id: int):
     state_context = dp.fsm.resolve_context(bot=bot, chat_id=chat_id, user_id=chat_id)
     await state_context.set_state(StoryState.final_stage)
 
-    await my_send_text_and_photos(
+    await bot.send_photo(
+        chat_id=chat_id,
+        photo=FSInputFile("data/photos/text_12_pro_1.jpg"),
+    )
+
+    await bot.send_message(
         chat_id=chat_id,
         text=text_12_for_pro,
-        photos=["data/photos/text_12_pro_1.jpg"],
-        post_id="12pro",
+        parse_mode="HTML",
+        reply_markup=get_reviews_kb(),
     )
 
     run_date = calculate_run_date()

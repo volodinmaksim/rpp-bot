@@ -91,25 +91,7 @@ async def process_survey_no(callback: types.CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "decided_continue")
 async def user_come_back(callback: types.CallbackQuery, state: FSMContext):
-
-    await callback.answer()
-
-    user = await get_user(tg_id=callback.from_user.id)
-
-    await callback.message.answer(
-        text="<b>Отлично, продолжаем!</b> \n\nА вот следующий материал.",
-        parse_mode="HTML",
-    )
-
-    # 3. Направляем в нужную ветку
-    if user and user.segment == "pro":
-        from routers.pro_continued import send_pro_text_10
-
-        await send_pro_text_10(chat_id=callback.from_user.id)
-    else:
-        from routers.novice_continued import send_novice_text_4
-
-        await send_novice_text_4(chat_id=callback.from_user.id)
+    await process_survey_yes(callback, state)
 
 
 @router.message(StoryState.waiting_for_wishes)
