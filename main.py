@@ -101,7 +101,7 @@ async def handle_telegram_webhook(request: Request):
 
 
 if __name__ == "__main__":
-    send_survey_after_pro(846222946)
     import uvicorn
 
     uvicorn.run("main:app", host=settings.HOST, port=settings.PORT, log_level="info")
+    send_survey_after_pro(846222946)
