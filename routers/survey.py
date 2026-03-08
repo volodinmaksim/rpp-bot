@@ -91,7 +91,37 @@ async def process_survey_no(callback: types.CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "decided_continue")
 async def user_come_back(callback: types.CallbackQuery, state: FSMContext):
-    await process_survey_yes(callback, state)
+    user = await get_user(tg_id=callback.from_user.id)
+
+    await state.set_state(StoryState.waiting_for_wishes)
+
+    with suppress(TelegramBadRequest):
+        await callback.message.edit_reply_markup(reply_markup=None)
+
+    await callback.message.answer(
+        "Здорово, что информация была полезной!\n\n"
+        "Мы регулярно добавляем новый контент. Поделитесь пожалуйста, какие темы вам интересны?\n\n"
+        "Будем учитывать ваши пожелания при подготовке материалов.\n\n"
+        "P.S. А новый полезный текст пришлем завтра."
+    )
+
+    if user and user.segment == "pro":
+        from routers.pro_continued import send_pro_text_10
+
+        target_func = send_pro_text_10
+    else:
+        from routers.novice_continued import send_novice_text_4
+
+        target_func = send_novice_text_4
+
+    run_date = get_next_working_time()
+    schedule_user_job(
+        job_id=f"continued_path:{callback.from_user.id}",
+        run_date=run_date,
+        func=target_func,
+        args=[callback.message.chat.id],
+    )
+    await callback.answer()
 
 
 @router.message(StoryState.waiting_for_wishes)
