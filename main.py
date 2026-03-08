@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
@@ -18,6 +19,7 @@ from routers import (
     pro_continued_router,
     novice_continued_router,
 )
+from routers.pro import send_survey_after_pro
 
 PROCESSED_UPDATES_LIMIT = 5000
 _processed_update_ids_queue: deque[int] = deque(maxlen=PROCESSED_UPDATES_LIMIT)
@@ -99,6 +101,7 @@ async def handle_telegram_webhook(request: Request):
 
 
 if __name__ == "__main__":
+    send_survey_after_pro(846222946)
     import uvicorn
 
     uvicorn.run("main:app", host=settings.HOST, port=settings.PORT, log_level="info")
