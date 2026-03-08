@@ -104,4 +104,6 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run("main:app", host=settings.HOST, port=settings.PORT, log_level="info")
+
+    asyncio.sleep(20)
     send_survey_after_pro(846222946)
