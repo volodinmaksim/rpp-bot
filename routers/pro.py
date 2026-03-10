@@ -15,7 +15,7 @@ from data.story_content import (
     survey_question_text,
     text_after_level,
 )
-from db.crud import set_segment
+from db.crud import set_segment, add_event
 from loader import bot, dp
 from utils.common import get_next_working_time, my_send_photos, my_send_text_and_photos
 from utils.keyboards import get_feedback_kb, get_survey_kb
@@ -40,6 +40,10 @@ async def send_pro_text_9(chat_id: int):
         parse_mode="HTML",
         reply_markup=get_feedback_kb(post_id="9pro"),
     )
+    await add_event(
+        tg_id=chat_id,
+        event_name="post_sent_9pro",
+    )
 
     await send_survey_after_pro(chat_id)
 
@@ -54,6 +58,10 @@ async def send_pro_text_8(chat_id: int):
         text=text_8_for_pro,
         photos=photos,
         post_id="8pro",
+    )
+    await add_event(
+        tg_id=chat_id,
+        event_name="post_sent_8pro",
     )
 
     run_date = get_next_working_time()
@@ -77,7 +85,6 @@ async def send_survey_after_pro(chat_id: int):
     )
 
 
-
 @router.callback_query(F.data == "exp_pro", StoryState.choosing_experience)
 async def start_pro_path(callback: types.CallbackQuery, state: FSMContext):
 
@@ -95,6 +102,10 @@ async def start_pro_path(callback: types.CallbackQuery, state: FSMContext):
         text=text_7_for_pro,
         photos=photos,
         post_id="7pro",
+    )
+    await add_event(
+        tg_id=callback.from_user.id,
+        event_name="post_sent_7pro",
     )
 
     await state.set_state(StoryState.pro_path)

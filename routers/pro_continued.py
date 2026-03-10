@@ -9,6 +9,7 @@ from data.story_content import (
     text_12_for_pro,
     final_goodbye_text_up,
 )
+from db.crud import add_event
 from loader import dp, bot
 from utils.common import my_send_text_and_photos, get_next_working_time
 from utils.keyboards import get_reviews_kb
@@ -38,7 +39,10 @@ async def send_pro_reviews_auto(chat_id: int):
         caption=final_goodbye_text_up,
         parse_mode="HTML",
     )
-
+    await add_event(
+        tg_id=chat_id,
+        event_name="post_sent_final_up",
+    )
 
 async def send_pro_text_12(chat_id: int):
     state_context = dp.fsm.resolve_context(bot=bot, chat_id=chat_id, user_id=chat_id)
@@ -54,6 +58,10 @@ async def send_pro_text_12(chat_id: int):
         text=text_12_for_pro,
         parse_mode="HTML",
         reply_markup=get_reviews_kb(),
+    )
+    await add_event(
+        tg_id=chat_id,
+        event_name="post_sent_12pro",
     )
 
     run_date = calculate_run_date()
@@ -71,6 +79,10 @@ async def send_pro_text_11(chat_id: int):
         text=text_11_for_pro,
         photos=["data/photos/text_11_pro_1.jpg"],
         post_id="11pro",
+    )
+    await add_event(
+        tg_id=chat_id,
+        event_name="post_sent_11pro",
     )
 
     run_date = get_next_working_time()
@@ -91,6 +103,11 @@ async def send_pro_text_10(chat_id: int):
         text=text_10_for_pro,
         photos=["data/photos/text_10_pro_1.jpg"],
         post_id="10pro",
+    )
+
+    await add_event(
+        tg_id=chat_id,
+        event_name="post_sent_10pro",
     )
 
     run_date = get_next_working_time()

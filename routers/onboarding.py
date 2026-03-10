@@ -7,6 +7,7 @@ from aiogram.types import FSInputFile
 
 from data.states import StoryState
 from data.story_content import text_extra_no
+from db.crud import add_event
 from utils.scheduler import clear_user_story_jobs
 from loader import bot
 
@@ -24,6 +25,10 @@ async def process_decline(callback: types.CallbackQuery):
                 )
             ]
         ]
+    )
+    await add_event(
+        tg_id=callback.from_user.id,
+        event_name="extra_no",
     )
     with suppress(TelegramBadRequest):
         await callback.message.delete()
@@ -49,6 +54,10 @@ async def process_accept(callback: types.CallbackQuery, state: FSMContext):
         "Круто, что вы с нами дальше! ✨\n\n"
         "Чтобы мы могли прислать что-то релевантное вашим "
         "интересам, поделитесь пожалуйста какой у вас опыт."
+    )
+    await add_event(
+        tg_id=callback.from_user.id,
+        event_name="extra_yes",
     )
 
     builder = types.InlineKeyboardMarkup(

@@ -12,14 +12,14 @@ from data.story_content import (
     text_8_for_beginners,
     final_goodbye_text_up,
 )
+from db.crud import add_event
 from loader import dp, bot
 from utils.common import my_send_photos, my_send_video, get_next_working_time
 from utils.keyboards import get_feedback_kb, get_reviews_kb
 from utils.scheduler import schedule_user_job
 
-
-
 router = Router()
+
 
 def calculate_run_date():
     """Считает время: сейчас + 3 часа, но строго в интервале 10:00 - 21:00"""
@@ -42,13 +42,24 @@ async def send_reviews_auto(chat_id: int):
         caption=final_goodbye_text_up,
         parse_mode="HTML",
     )
-
+    await add_event(
+        tg_id=chat_id,
+        event_name="post_sent_final_up",
+    )
 
 async def send_novice_text_7(chat_id: int):
     state_context = dp.fsm.resolve_context(bot=bot, chat_id=chat_id, user_id=chat_id)
     await state_context.set_state(StoryState.final_stage)
 
-    await bot.send_message(chat_id, text_7_for_beginners, parse_mode="HTML")
+    await bot.send_message(
+        chat_id,
+        text_7_for_beginners,
+        parse_mode="HTML",
+    )
+    await add_event(
+        tg_id=chat_id,
+        event_name="post_sent_7beg",
+    )
     await asyncio.sleep(6)
 
     photos = [f"data/photos/text_8_beginers_{i}.jpg" for i in range(1, 7)]
@@ -63,6 +74,10 @@ async def send_novice_text_7(chat_id: int):
         text=text_8_for_beginners,
         parse_mode="HTML",
         reply_markup=get_reviews_kb(),
+    )
+    await add_event(
+        tg_id=chat_id,
+        event_name="post_sent_8beg",
     )
     run_date = calculate_run_date()
     schedule_user_job(
@@ -80,6 +95,11 @@ async def send_novice_text_6(chat_id: int):
         reply_markup=get_feedback_kb(post_id="6"),
         parse_mode="HTML",
     )
+    await add_event(
+        tg_id=chat_id,
+        event_name="post_sent_6beg",
+    )
+
     run_date = get_next_working_time()
     schedule_user_job(
         job_id=f"novice_text_7:{chat_id}",
@@ -88,10 +108,19 @@ async def send_novice_text_6(chat_id: int):
         args=[chat_id],
     )
 
+
 async def send_novice_text_5(chat_id: int):
     photos = [f"data/photos/text_5_beginers_{i}.jpg" for i in range(1, 7)]
     await my_send_photos(
-        chat_id=chat_id, text=text_5_for_beginners, photos=photos, post_id="5"
+        chat_id=chat_id,
+        text=text_5_for_beginners,
+        photos=photos,
+        post_id="5",
+    )
+
+    await add_event(
+        tg_id=chat_id,
+        event_name="post_sent_5beg",
     )
 
     run_date = get_next_working_time()
@@ -106,8 +135,16 @@ async def send_novice_text_5(chat_id: int):
 async def send_novice_text_4(chat_id: int):
     path = "data/videos/text_4_beginer_1.MOV"
     await my_send_video(
-        chat_id=chat_id, text=text_4_for_beginners, path=path, post_id="4"
+        chat_id=chat_id,
+        text=text_4_for_beginners,
+        path=path,
+        post_id="4",
     )
+    await add_event(
+        tg_id=chat_id,
+        event_name="post_sent_4beg",
+    )
+
     run_date = get_next_working_time()
     schedule_user_job(
         job_id=f"novice_text_5:{chat_id}",

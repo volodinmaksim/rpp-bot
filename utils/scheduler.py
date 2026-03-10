@@ -4,6 +4,8 @@ from data.states import StoryState
 from aiogram import Bot
 from apscheduler.jobstores.base import JobLookupError
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+from db.crud import add_event
 from loader import bot, dp, scheduler
 
 from data.story_content import text_after_15_minutes
@@ -65,6 +67,11 @@ async def send_15min_survey(chat_id: int):
 
     if current_state != StoryState.waiting_15min_pause.state:
         return
+
+    await add_event(
+        tg_id=chat_id,
+        event_name="survey_15min_sent",
+    )
 
     await state.set_state(StoryState.waiting_for_extra_materials)
 

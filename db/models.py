@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, func, Text, String, ForeignKey
+from sqlalchemy import BigInteger, DateTime, func, Text, String, ForeignKey, Index
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -28,12 +28,18 @@ class User(Base):
 
 class Events(Base):
     __tablename__ = "events"
+    __table_args__ = (Index("ix_events_user_id_timestamp", "user_id", "timestamp"),)
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    event_name: Mapped[str] = mapped_column(Text, nullable=False)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
+    event_name: Mapped[str] = mapped_column(Text, nullable=False, index=True)
     timestamp: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
+        index=True,
     )
 
     user: Mapped["User"] = relationship(back_populates="events")

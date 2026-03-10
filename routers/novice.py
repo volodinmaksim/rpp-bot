@@ -32,6 +32,10 @@ async def send_novice_text_3(chat_id: int):
         photos=photos,
         post_id="3beg",
     )
+    await add_event(
+        tg_id=chat_id,
+        event_name="post_sent_3beg",
+    )
 
     await send_survey_after_novice(chat_id)
 
@@ -47,7 +51,10 @@ async def send_novice_text_2(chat_id: int):
         photos=photos,
         post_id="2beg",
     )
-
+    await add_event(
+        tg_id=chat_id,
+        event_name="post_sent_2beg",
+    )
 
     run_date = get_next_working_time()
     schedule_user_job(
@@ -81,6 +88,10 @@ async def start_novice_path(callback: types.CallbackQuery, state: FSMContext):
         text=text_1_for_beginners,
         reply_markup=get_feedback_kb(post_id="1beg"),
         parse_mode="HTML",
+    )
+    await add_event(
+        tg_id=callback.from_user.id,
+        event_name="post_sent_1beg",
     )
 
     await state.set_state(StoryState.novice_path)

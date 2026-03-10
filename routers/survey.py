@@ -36,6 +36,11 @@ async def process_survey_yes(callback: types.CallbackQuery, state: FSMContext):
         "P.S. А новый полезный текст пришлем завтра."
     )
 
+    await add_event(
+        tg_id=callback.from_user.id,
+        event_name="survey_yes",
+    )
+
     if user and user.segment == "pro":
         from routers.pro_continued import send_pro_text_10
 
@@ -75,6 +80,10 @@ async def process_survey_no(callback: types.CallbackQuery, state: FSMContext):
             ]
         ]
     )
+    await add_event(
+        tg_id=callback.from_user.id,
+        event_name="survey_no",
+    )
 
     photo = FSInputFile("data/photos/text_final.jpg")
     await bot.send_photo(
@@ -85,6 +94,10 @@ async def process_survey_no(callback: types.CallbackQuery, state: FSMContext):
         reply_markup=builder,
     )
 
+    await add_event(
+        tg_id=callback.from_user.id,
+        event_name="post_sent_final_down",
+    )
     await state.clear()
     await callback.answer()
 
@@ -94,6 +107,11 @@ async def user_come_back(callback: types.CallbackQuery, state: FSMContext):
     user = await get_user(tg_id=callback.from_user.id)
 
     await state.set_state(StoryState.waiting_for_wishes)
+
+    await add_event(
+        tg_id=callback.from_user.id,
+        event_name="decided_continue",
+    )
 
     with suppress(TelegramBadRequest):
         await callback.message.edit_reply_markup(reply_markup=None)
@@ -126,11 +144,15 @@ async def user_come_back(callback: types.CallbackQuery, state: FSMContext):
 
 @router.message(StoryState.waiting_for_wishes)
 async def collect_user_wishes(message: types.Message, state: FSMContext):
+
+    await add_event(
+        tg_id=message.from_user.id,
+        event_name="wish_submitted",
+    )
     await add_event(
         tg_id=message.from_user.id,
         event_name=f"user_wish: {(message.text or '').strip()}",
     )
-
     await message.answer(
         "Спасибо большое! Нам понадобится время, чтобы обработать ваш запрос.\n\n"
         "Возможно часть запросов будет публиковаться в канале Школы ЧК."
@@ -144,6 +166,11 @@ async def process_show_reviews(callback: types.CallbackQuery):
     await callback.answer()
     with suppress(Exception):
         await callback.message.edit_reply_markup(reply_markup=None)
+
+    await add_event(
+        tg_id=callback.from_user.id,
+        event_name="reviews_opened",
+    )
 
     photo_path = FSInputFile("data/photos/meme1.png")
     await bot.send_photo(
