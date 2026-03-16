@@ -55,12 +55,9 @@ async def verify_subscription(callback: types.CallbackQuery, state: FSMContext):
             text_subscription_is_confirmed,
             reply_markup=builder.as_markup(),
         )
-        schedule_user_job(
-            job_id=f"15min_survey:{callback.from_user.id}",
-            run_date=datetime.now() + timedelta(minutes=5),
-            func=send_15min_survey,
-            args=[callback.message.chat.id],
-        )
+
+        await send_15min_survey(callback.message.chat.id)
+
     else:
         await callback.answer("Вы еще не подписались на канал!", show_alert=True)
 
