@@ -22,6 +22,8 @@ router = Router()
 
 @router.callback_query(F.data == "survey_yes", StoryState.waiting_for_survey_response)
 async def process_survey_yes(callback: types.CallbackQuery, state: FSMContext):
+    await callback.answer()
+
     user = await get_user(tg_id=callback.from_user.id)
 
     await state.set_state(StoryState.waiting_for_wishes)
@@ -57,12 +59,11 @@ async def process_survey_yes(callback: types.CallbackQuery, state: FSMContext):
         func=target_func,
         args=[callback.message.chat.id],
     )
-    await callback.answer()
 
 
 @router.callback_query(F.data == "survey_no", StoryState.waiting_for_survey_response)
 async def process_survey_no(callback: types.CallbackQuery, state: FSMContext):
-    # await add_event(tg_id=callback.from_user.id, event_name="survey_answered_no")
+    await callback.answer()
 
     await callback.message.edit_text(
         text="Эх, тогда вот последний текст и прощаемся ☺️",
@@ -99,11 +100,12 @@ async def process_survey_no(callback: types.CallbackQuery, state: FSMContext):
         event_name="post_sent_final_down",
     )
     await state.clear()
-    await callback.answer()
 
 
 @router.callback_query(F.data == "decided_continue")
 async def user_come_back(callback: types.CallbackQuery, state: FSMContext):
+    await callback.answer()
+
     user = await get_user(tg_id=callback.from_user.id)
 
     await state.set_state(StoryState.waiting_for_wishes)
@@ -139,7 +141,6 @@ async def user_come_back(callback: types.CallbackQuery, state: FSMContext):
         func=target_func,
         args=[callback.message.chat.id],
     )
-    await callback.answer()
 
 
 @router.message(StoryState.waiting_for_wishes)

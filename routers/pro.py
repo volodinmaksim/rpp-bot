@@ -87,6 +87,7 @@ async def send_survey_after_pro(chat_id: int):
 
 @router.callback_query(F.data == "exp_pro", StoryState.choosing_experience)
 async def start_pro_path(callback: types.CallbackQuery, state: FSMContext):
+    await callback.answer()
 
     with suppress(TelegramBadRequest):
         await callback.message.edit_text(text=text_after_level)
@@ -118,4 +119,3 @@ async def start_pro_path(callback: types.CallbackQuery, state: FSMContext):
         args=[callback.message.chat.id],
     )
 
-    await callback.answer()

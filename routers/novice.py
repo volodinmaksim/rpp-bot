@@ -79,6 +79,7 @@ async def send_survey_after_novice(chat_id: int):
 
 @router.callback_query(F.data == "exp_beginner", StoryState.choosing_experience)
 async def start_novice_path(callback: types.CallbackQuery, state: FSMContext):
+    await callback.answer()
 
     await set_segment(tg_id=callback.from_user.id, segment="beginner")
 
@@ -103,9 +104,6 @@ async def start_novice_path(callback: types.CallbackQuery, state: FSMContext):
         func=send_novice_text_2,
         args=[callback.message.chat.id],
     )
-
-    await callback.answer()
-
 
 @router.callback_query(F.data.startswith("fb_"))
 async def handle_feedback(callback: types.CallbackQuery):

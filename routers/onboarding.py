@@ -1,6 +1,6 @@
-from contextlib import suppress
+﻿from contextlib import suppress
 
-from aiogram import Router, F, types
+from aiogram import F, Router, types
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile
@@ -8,14 +8,17 @@ from aiogram.types import FSInputFile
 from data.states import StoryState
 from data.story_content import text_extra_no
 from db.crud import add_event
-from utils.scheduler import clear_user_story_jobs
 from loader import bot
+from utils.scheduler import clear_user_story_jobs
 
 router = Router()
 
 
 @router.callback_query(F.data == "extra_no", StoryState.waiting_for_extra_materials)
 async def process_decline(callback: types.CallbackQuery):
+    with suppress(TelegramBadRequest):
+        await callback.answer()
+
     builder = types.InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -41,11 +44,12 @@ async def process_decline(callback: types.CallbackQuery):
         reply_markup=builder,
     )
 
-    await callback.answer()
-
 
 @router.callback_query(F.data == "extra_yes")
 async def process_accept(callback: types.CallbackQuery, state: FSMContext):
+    with suppress(TelegramBadRequest):
+        await callback.answer()
+
     clear_user_story_jobs(tg_id=callback.from_user.id)
 
     await state.set_state(StoryState.choosing_experience)
@@ -78,5 +82,3 @@ async def process_accept(callback: types.CallbackQuery, state: FSMContext):
     with suppress(TelegramBadRequest):
         await callback.message.delete()
     await callback.message.answer(text=text, reply_markup=builder)
-    with suppress(TelegramBadRequest):
-        await callback.answer()
