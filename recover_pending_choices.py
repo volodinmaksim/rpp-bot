@@ -6,14 +6,24 @@ from datetime import datetime, timedelta, timezone
 from typing import Awaitable, Callable
 
 from aiogram import types
-from aiogram.exceptions import TelegramAPIError, TelegramBadRequest, TelegramForbiddenError
+from aiogram.exceptions import (
+    TelegramAPIError,
+    TelegramBadRequest,
+    TelegramForbiddenError,
+)
 from aiogram.fsm.state import State
+from aiogram.types import FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from sqlalchemy import select
 
 from config import settings
 from data.states import StoryState
-from data.story_content import survey_question_text, text_after_15_minutes
+from data.story_content import (
+    final_goodbye_text_down,
+    survey_question_text,
+    text_after_15_minutes,
+    text_hello,
+)
 from db.db_helper import db_helper
 from db.models import Events, User
 from loader import bot, dp, redis
@@ -23,11 +33,16 @@ from utils.scheduler import clear_user_story_jobs
 logger = logging.getLogger(__name__)
 
 RECOVERY_PREFIX = (
-    "Из-за замедления Telegram ответ на кнопку мог не обработаться с первого раза. "
-    "Если вы уже пытались ответить, пожалуйста, выберите еще раз. "
-    "Если еще не пытались, извините за лишнее сообщение.\n\n"
-    "P.S. В данный момент РКН блокирует телеграм, и сообщения могут приходить с задержкой. "
-    "Бот рабочий, если есть хоть немного терпения."
+    "РџСЂРёРІРµС‚. РР·-Р·Р° Р·Р°РјРµРґР»РµРЅРёСЏ Telegram РѕС‚РІРµС‚ РЅР° РєРЅРѕРїРєСѓ "
+    "РјРѕРі РЅРµ РѕР±СЂР°Р±РѕС‚Р°С‚СЊСЃСЏ СЃ РїРµСЂРІРѕРіРѕ СЂР°Р·Р°.\n\n"
+    "Р•СЃР»Рё РІС‹ СѓР¶Рµ РїС‹С‚Р°Р»РёСЃСЊ РѕС‚РІРµС‚РёС‚СЊ, РїРѕР¶Р°Р»СѓР№СЃС‚Р°, РІС‹Р±РµСЂРёС‚Рµ "
+    "РµС‰Рµ СЂР°Р·. Р•СЃР»Рё РµС‰Рµ РЅРµ РїС‹С‚Р°Р»РёСЃСЊ, РёР·РІРёРЅРёС‚Рµ Р·Р° Р±РµСЃРїРѕРєРѕР№СЃС‚РІРѕ."
+)
+
+EXPERIENCE_CHOICE_TEXT = (
+    "Круто, что вы с нами дальше! ✨\n\n"
+    "Чтобы мы могли прислать что-то релевантное вашим "
+    "интересам, поделитесь пожалуйста какой у вас опыт."
 )
 
 
@@ -47,17 +62,22 @@ class RecoveryCandidate:
     waiting_timestamp: datetime
 
 
+async def send_recovery_prefix(chat_id: int) -> None:
+    await bot.send_message(chat_id=chat_id, text=RECOVERY_PREFIX)
+
+
 async def send_subscription_choice(chat_id: int) -> None:
     builder = InlineKeyboardBuilder()
     builder.button(text="1. Подписаться", url=settings.CHAT_URL)
     builder.button(text="2. Я подписался!", callback_data="check_sub")
     builder.adjust(1)
 
-    text = (
-        f"{RECOVERY_PREFIX}\n\n"
-        "Если вы уже подписались на канал, нажмите кнопку «Я подписался!» еще раз."
+    await send_recovery_prefix(chat_id)
+    await bot.send_message(
+        chat_id=chat_id,
+        text=text_hello,
+        reply_markup=builder.as_markup(),
     )
-    await bot.send_message(chat_id=chat_id, text=text, reply_markup=builder.as_markup())
 
 
 async def send_extra_materials_choice(chat_id: int) -> None:
@@ -66,8 +86,12 @@ async def send_extra_materials_choice(chat_id: int) -> None:
     builder.button(text="Нет", callback_data="extra_no")
     builder.adjust(2)
 
-    text = f"{RECOVERY_PREFIX}\n\n{text_after_15_minutes}"
-    await bot.send_message(chat_id=chat_id, text=text, reply_markup=builder.as_markup())
+    await send_recovery_prefix(chat_id)
+    await bot.send_message(
+        chat_id=chat_id,
+        text=text_after_15_minutes,
+        reply_markup=builder.as_markup(),
+    )
 
 
 async def send_experience_choice(chat_id: int) -> None:
@@ -88,19 +112,19 @@ async def send_experience_choice(chat_id: int) -> None:
         ]
     )
 
-    text = (
-        f"{RECOVERY_PREFIX}\n\n"
-        "Чтобы мы могли прислать что-то релевантное вашим интересам, "
-        "пожалуйста, выберите ваш опыт еще раз."
+    await send_recovery_prefix(chat_id)
+    await bot.send_message(
+        chat_id=chat_id,
+        text=EXPERIENCE_CHOICE_TEXT,
+        reply_markup=builder,
     )
-    await bot.send_message(chat_id=chat_id, text=text, reply_markup=builder)
 
 
 async def send_survey_choice(chat_id: int) -> None:
-    text = f"{RECOVERY_PREFIX}\n\n{survey_question_text}"
+    await send_recovery_prefix(chat_id)
     await bot.send_message(
         chat_id=chat_id,
-        text=text,
+        text=survey_question_text,
         reply_markup=get_survey_kb(),
         parse_mode="HTML",
     )
@@ -118,11 +142,15 @@ async def send_continue_choice(chat_id: int) -> None:
         ]
     )
 
-    text = (
-        f"{RECOVERY_PREFIX}\n\n"
-        "Если вы пытались продолжить материалы, нажмите кнопку ниже еще раз."
+    await send_recovery_prefix(chat_id)
+    photo = FSInputFile("data/photos/text_final.jpg")
+    await bot.send_photo(
+        chat_id=chat_id,
+        photo=photo,
+        caption=final_goodbye_text_down,
+        parse_mode="HTML",
+        reply_markup=builder,
     )
-    await bot.send_message(chat_id=chat_id, text=text, reply_markup=builder)
 
 
 RECOVERY_RULES: tuple[PendingChoiceRecovery, ...] = (
@@ -169,7 +197,12 @@ RECOVERY_RULES: tuple[PendingChoiceRecovery, ...] = (
     ),
     PendingChoiceRecovery(
         waiting_events=("survey_no", "post_sent_final_down"),
-        completion_events=("decided_continue", "wish_submitted", "post_sent_4beg", "post_sent_10pro"),
+        completion_events=(
+            "decided_continue",
+            "wish_submitted",
+            "post_sent_4beg",
+            "post_sent_10pro",
+        ),
         state=None,
         sender=send_continue_choice,
         description="continue after opt-out",
@@ -183,7 +216,9 @@ RELEVANT_EVENT_NAMES = {
 }
 
 
-def latest_timestamp(events: list[tuple[str, datetime]], event_names: tuple[str, ...]) -> datetime | None:
+def latest_timestamp(
+    events: list[tuple[str, datetime]], event_names: tuple[str, ...]
+) -> datetime | None:
     event_set = set(event_names)
     latest: datetime | None = None
     for event_name, timestamp in events:
@@ -196,7 +231,9 @@ def latest_timestamp(events: list[tuple[str, datetime]], event_names: tuple[str,
 
 async def load_user_events() -> dict[int, dict[str, object]]:
     async with db_helper.session_factory() as session:
-        users_result = await session.execute(select(User.id, User.tg_id, User.join_date))
+        users_result = await session.execute(
+            select(User.id, User.tg_id, User.join_date)
+        )
         users = users_result.all()
 
         events_result = await session.execute(
@@ -241,7 +278,10 @@ def build_candidates(
                 continue
 
             completion_timestamp = latest_timestamp(events, rule.completion_events)
-            if completion_timestamp is not None and completion_timestamp > waiting_timestamp:
+            if (
+                completion_timestamp is not None
+                and completion_timestamp > waiting_timestamp
+            ):
                 continue
 
             if now - waiting_timestamp < stale_after:
@@ -274,7 +314,9 @@ async def recover_candidates(
     failed = 0
 
     for candidate in candidates:
-        age_hours = (datetime.now(timezone.utc) - candidate.waiting_timestamp).total_seconds() / 3600
+        age_hours = (
+            datetime.now(timezone.utc) - candidate.waiting_timestamp
+        ).total_seconds() / 3600
         logger.info(
             "Candidate tg_id=%s choice=%s age_hours=%.1f",
             candidate.tg_id,
