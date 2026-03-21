@@ -45,6 +45,7 @@ def clear_user_story_jobs(*, tg_id: int) -> None:
         "novice_text_6",
         "novice_text_7",
         "novice_text_8",
+        "novice_reviews",
         "pro_text_8",
         "pro_text_9",
         "pro_text_10",
