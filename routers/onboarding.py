@@ -78,4 +78,5 @@ async def process_accept(callback: types.CallbackQuery, state: FSMContext):
     with suppress(TelegramBadRequest):
         await callback.message.delete()
     await callback.message.answer(text=text, reply_markup=builder)
-    await callback.answer()
+    with suppress(TelegramBadRequest):
+        await callback.answer()
