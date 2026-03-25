@@ -14,7 +14,12 @@ from data.story_content import (
 )
 from db.crud import add_event
 from loader import dp, bot
-from utils.common import my_send_photos, my_send_video, get_next_working_time
+from utils.common import (
+    BUSINESS_TZ,
+    get_next_working_time,
+    my_send_photos,
+    my_send_video,
+)
 from utils.keyboards import get_feedback_kb, get_reviews_kb
 from utils.scheduler import schedule_user_job
 
@@ -23,13 +28,18 @@ router = Router()
 
 def calculate_run_date():
     """Считает время: сейчас + 3 часа, но строго в интервале 10:00 - 21:00"""
-    run_date = datetime.now() + timedelta(hours=3)
+    run_date = datetime.now(tz=BUSINESS_TZ) + timedelta(hours=3)
 
     if run_date.hour >= 21:
-        run_date = (run_date + timedelta(days=1)).replace(hour=10, minute=0, second=0)
+        run_date = (run_date + timedelta(days=1)).replace(
+            hour=10,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
 
     elif run_date.hour < 10:
-        run_date = run_date.replace(hour=10, minute=0, second=0)
+        run_date = run_date.replace(hour=10, minute=0, second=0, microsecond=0)
 
     return run_date
 

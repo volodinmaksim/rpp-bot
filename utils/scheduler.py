@@ -19,7 +19,9 @@ def schedule_user_job(
     args: list,
 ) -> None:
     if run_date.tzinfo is None:
-        run_date = run_date.astimezone(scheduler.timezone)
+        raise ValueError("run_date must be timezone-aware")
+
+    run_date = run_date.astimezone(scheduler.timezone)
 
     scheduler.add_job(
         func,
