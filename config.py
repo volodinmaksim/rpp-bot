@@ -27,6 +27,12 @@ class Settings(BaseSettings):
     RABBITMQ_MAX_RETRIES: int = 5
     RABBITMQ_RETRY_DELAY_MS: int = 30000
 
+    # PROXY
+    PROXY_IP_OR_DOMAIN: str
+    PROXY_PORT: int
+    PROXY_LOGIN: str
+    PROXY_PASSWORD: SecretStr
+
     @property
     def database_url(self) -> str:
         if self.ASYNC_DB_URL:

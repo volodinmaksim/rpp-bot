@@ -2,8 +2,10 @@ import logging
 from zoneinfo import ZoneInfo
 
 from aiogram import Bot, Dispatcher
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
+from aiohttp import BasicAuth
 from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.jobstores.redis import RedisJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -18,7 +20,20 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-bot = Bot(token=settings.BOT_TOKEN.get_secret_value())
+session = AiohttpSession(
+    proxy=(
+        f"socks5://{settings.PROXY_IP_OR_DOMAIN}:{settings.PROXY_PORT}",
+        BasicAuth(
+            settings.PROXY_LOGIN,
+            settings.PROXY_PASSWORD.get_secret_value(),
+        ),
+    )
+)
+
+bot = Bot(
+    token=settings.BOT_TOKEN.get_secret_value(),
+    session=session,
+)
 
 
 if settings.REDIS_URL:
