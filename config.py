@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlparse
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     REDIS_URL: str | None = None
     RABBITMQ_URL: str | None = None
     BASE_URL: str
+    WEBHOOK_IP_ADDRESS: str | None = None
     ADMIN_ID: int
     CHAT_ID_TO_CHECK: int
     CHAT_URL: str
@@ -77,6 +78,13 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @field_validator("WEBHOOK_IP_ADDRESS", mode="before")
+    @classmethod
+    def empty_strings_to_none(cls, value):
+        if value == "":
+            return None
+        return value
 
 
 @lru_cache

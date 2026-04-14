@@ -21,10 +21,16 @@ async def lifespan(app: FastAPI):
     webhook_url = settings.BASE_URL + "/rpp/webhook"
     await init_db()
     await init_rabbitmq()
+    webhook_kwargs = {
+        "url": webhook_url,
+        "secret_token": settings.SECRET_TG_KEY,
+        "drop_pending_updates": False,
+    }
+    if settings.WEBHOOK_IP_ADDRESS is not None:
+        webhook_kwargs["ip_address"] = settings.WEBHOOK_IP_ADDRESS
+
     await bot.set_webhook(
-        url=webhook_url,
-        secret_token=settings.SECRET_TG_KEY,
-        drop_pending_updates=False,
+        **webhook_kwargs,
     )
     logger.info("Webhook set to: %s", webhook_url)
 
