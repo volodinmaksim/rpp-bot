@@ -32,7 +32,7 @@ session = AiohttpSession(
 
 bot = Bot(
     token=settings.BOT_TOKEN.get_secret_value(),
-    session=session,
+    #session=session,
 )
 
 
