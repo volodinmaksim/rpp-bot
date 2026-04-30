@@ -16,7 +16,7 @@ from data.story_content import (
 from db.crud import add_event, add_user
 from exception.db import UserNotFound
 from loader import logger
-from utils.scheduler import clear_user_story_jobs, send_15min_survey
+from utils.scheduler import clear_user_story_jobs
 
 router = Router(name="start_router")
 
@@ -29,15 +29,66 @@ def get_subscription_channels() -> tuple[tuple[int, str], ...]:
 
 
 def build_subscription_keyboard() -> types.InlineKeyboardMarkup:
+    return build_subscription_check_keyboard(check_callback_data="check_sub")
+
+
+def build_subscription_check_keyboard(
+    *, check_callback_data: str
+) -> types.InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for index, (_, url) in enumerate(get_subscription_channels(), start=1):
         builder.button(text=f"{index}. Подписаться", url=url)
     builder.button(
         text=f"{len(get_subscription_channels()) + 1}. Я подписался!",
-        callback_data="check_sub",
+        callback_data=check_callback_data,
     )
     builder.adjust(1)
     return builder.as_markup()
+
+
+async def is_subscribed_to_all_channels(user_id: int) -> bool:
+    from loader import bot
+
+    subscriptions = [
+        await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
+        for chat_id, _ in get_subscription_channels()
+    ]
+    return all(
+        user_sub.status in ["member", "administrator", "creator"]
+        for user_sub in subscriptions
+    )
+
+
+async def add_event_safely(*, tg_id: int, event_name: str) -> None:
+    try:
+        await add_event(tg_id=tg_id, event_name=event_name)
+    except UserNotFound:
+        logger.error("Ошибка: пользователь с tg_id %s не найден в базе.", tg_id)
+
+
+async def send_questionnaire_link(
+    callback: types.CallbackQuery, state: FSMContext
+) -> None:
+    tg_id = callback.from_user.id
+    clear_user_story_jobs(tg_id=tg_id)
+    await add_event_safely(
+        tg_id=tg_id,
+        event_name='Получить файл: "Пенсильванский опросник"',
+    )
+
+    await callback.message.edit_text(f"Пенсильванский опросник:\n{settings.YDISK_LINK}")
+    await state.set_state(StoryState.final_stage)
+
+
+async def send_subscription_confirmed_message(message: types.Message) -> None:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Получить опросник 📥", callback_data="track_link_click")
+
+    await message.answer(
+        text_subscription_is_confirmed,
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML",
+    )
 
 
 @router.message(Command("start"))
@@ -85,46 +136,40 @@ async def verify_subscription(callback: types.CallbackQuery, state: FSMContext):
     with suppress(TelegramBadRequest):
         await callback.answer()
 
-    subscriptions = [
-        await bot.get_chat_member(chat_id=chat_id, user_id=callback.from_user.id)
-        for chat_id, _ in get_subscription_channels()
-    ]
-
-    if all(
-        user_sub.status in ["member", "administrator", "creator"]
-        for user_sub in subscriptions
-    ):
+    if await is_subscribed_to_all_channels(callback.from_user.id):
         await state.set_state(StoryState.waiting_15min_pause)
+        await send_subscription_confirmed_message(callback.message)
+        return
 
-        builder = InlineKeyboardBuilder()
-        builder.button(
-            text="Получить опросник 📥", callback_data="track_link_click"
-        )
+    await callback.message.answer("Вы еще не подписались на все каналы!")
 
-        await callback.message.answer(
-            text_subscription_is_confirmed,
-            reply_markup=builder.as_markup(),
-            parse_mode="HTML",
-        )
 
-        await send_15min_survey(callback.message.chat.id)
+@router.callback_query(F.data == "check_extra_yes_sub")
+async def verify_extra_yes_broadcast_subscription(
+    callback: types.CallbackQuery, state: FSMContext
+):
+    with suppress(TelegramBadRequest):
+        await callback.answer()
+
+    await add_event_safely(
+        tg_id=callback.from_user.id,
+        event_name="click_check_extra_yes_subscription",
+    )
+
+    if await is_subscribed_to_all_channels(callback.from_user.id):
+        await send_subscription_confirmed_message(callback.message)
         return
 
     await callback.message.answer("Вы еще не подписались на все каналы!")
 
 
 @router.callback_query(F.data == "track_link_click")
-async def track_link_click(callback: types.CallbackQuery):
+async def track_link_click(callback: types.CallbackQuery, state: FSMContext):
     with suppress(TelegramBadRequest):
         await callback.answer()
 
-    tg_id = callback.from_user.id
-    try:
-        await add_event(
-            tg_id=tg_id,
-            event_name='Получить файл: "Пенсильванский опросник"',
-        )
-    except UserNotFound:
-        logger.error("Ошибка: пользователь с tg_id %s не найден в базе.", tg_id)
-
-    await callback.message.edit_text(f"Пенсильванский опросник:\n{settings.YDISK_LINK}")
+    await add_event_safely(
+        tg_id=callback.from_user.id,
+        event_name="click_get_questionnaire",
+    )
+    await send_questionnaire_link(callback, state)
