@@ -66,8 +66,13 @@ async def send_recovery_prefix(chat_id: int) -> None:
 
 async def send_subscription_choice(chat_id: int) -> None:
     builder = InlineKeyboardBuilder()
-    builder.button(text="1. Подписаться", url=settings.CHAT_URL)
-    builder.button(text="2. Я подписался!", callback_data="check_sub")
+    channels = (
+        settings.CHAT_URL,
+        settings.SECOND_CHAT_URL,
+    )
+    for index, url in enumerate(channels, start=1):
+        builder.button(text=f"{index}. Подписаться", url=url)
+    builder.button(text=f"{len(channels) + 1}. Я подписался!", callback_data="check_sub")
     builder.adjust(1)
 
     await send_recovery_prefix(chat_id)

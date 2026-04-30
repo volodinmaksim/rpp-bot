@@ -2,6 +2,7 @@ from aiogram.fsm.state import StatesGroup, State
 
 
 class StoryState(StatesGroup):
+    waiting_for_advertising_consent = State()
     waiting_for_subscription = State()
     waiting_15min_pause = State()
     waiting_for_extra_materials = State()
