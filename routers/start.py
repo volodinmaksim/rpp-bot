@@ -39,7 +39,7 @@ def build_subscription_check_keyboard(
     for index, (_, url) in enumerate(get_subscription_channels(), start=1):
         builder.button(text=f"{index}. Подписаться", url=url)
     builder.button(
-        text=f"{len(get_subscription_channels()) + 1}. Я подписался!",
+        text=f"{len(get_subscription_channels()) + 1}. Я подписалась!",
         callback_data=check_callback_data,
     )
     builder.adjust(1)
