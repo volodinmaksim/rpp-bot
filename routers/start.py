@@ -121,6 +121,10 @@ async def accept_advertising(callback: types.CallbackQuery, state: FSMContext):
     with suppress(TelegramBadRequest):
         await callback.answer()
 
+    await add_event_safely(
+        tg_id=callback.from_user.id,
+        event_name="advertising_consent",
+    )
     await state.set_state(StoryState.waiting_for_subscription)
     await callback.message.answer(
         text_hello,
