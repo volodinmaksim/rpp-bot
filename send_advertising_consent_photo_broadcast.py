@@ -2,11 +2,9 @@ import argparse
 import asyncio
 import logging
 from datetime import datetime
-from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from aiogram.exceptions import TelegramAPIError, TelegramForbiddenError
-from aiogram.types import FSInputFile
 from sqlalchemy import exists, select
 
 from config import settings
@@ -16,47 +14,25 @@ from db.models import Events, User
 from loader import bot, redis
 
 MOSCOW_TZ = ZoneInfo("Europe/Moscow")
-DEFAULT_RUN_AT = datetime(2026, 5, 8, 12, 0, tzinfo=MOSCOW_TZ)
+DEFAULT_RUN_AT = datetime(2026, 5, 14, 12, 0, tzinfo=MOSCOW_TZ)
 SOURCE_EVENTS = (
     "click_get_questionnaire",
     'Получить файл: "Пенсильванский опросник"',
 )
-BROADCAST_SENT_EVENT = "questionnaire_recipients_photo_broadcast_sent"
+BROADCAST_SENT_EVENT = "questionnaire_recipients_photo_broadcast_sent_2026_05_14"
 
-PHOTO_PATH = Path("data/photos/broadcast_2026_05_08.jpg")
 BROADCAST_CAPTION = """
-<b>Клиент на ГПП-1: как адаптировать протоколы терапии под «новые тренды»?</b>
+<b>Почему в терапии не происходит изменений?</b>
+<i>Эфир с Ириной Ушковой</i>
 
-В современной практике РПП-специалиста всё чаще звучат названия препаратов-агонистов ГПП-1* (Оземпик и его аналоги). Для многих из нас это становится точкой профессиональной неопределенности.
+Знакома ли вам ситуация, когда терапевтический процесс заходит в тупик? На эфире с Ириной Ушковой мы обсудили, что делать, когда желаемые изменения в помогающей практике не происходят.
 
-Важно понимать, что хотя препараты эффективно воздействуют на физиологию, они не затрагивают психологическую архитектуру расстройства. Психотерапия становится критически важным звеном, которое обеспечивает устойчивость изменений.
+<b>Разобрали:</b>
+🔷 Почему возникает застой в работе и желаемые изменения не наступают.
+🔷 Какую реальную роль в этом процессе играет сопротивление клиента.
+🔷 Какие конкретные навыки можно применять с клиентами, чтобы уверенно подводить их к результату.
 
-Препараты ГПП-1 успешно имитируют действие гормонов, повышая сытость и снижая аппетит. Однако РПП — это многофакторное состояние, и работа с ним по-прежнему требует внимания к трем ключевым направлениям:
-
-1. <b>Сверхзначимость формы и веса.</b> Препарат меняет тело, но не отношение к нему. Страх набора веса и когнитивные искажения остаются в зоне ответственности терапевта.
-2. <b>Пищевые правила и ритуалы.</b> Лекарство не отменяет мифы о «плохих» продуктах и жесткие запреты, которые продолжают ограничивать жизнь клиента.
-3. <b>Эпизоды переедания.</b> Если питание остается нерегулярным, переедания могут сохраняться даже на фоне сниженного аппетита. Психотерапия помогает вернуть структуру и осознанность.
-
-<b>На чем мы фокусируемся в психотерапии РПП?</b>
-
-В работе с клиентами на ГПП-1 мы уделяем особое внимание следующим аспектам:
-1. <b>Работа с мифами и страхами:</b> деконструкция ригидных правил и страхов вокруг определенных групп продуктов.
-2. <b>Образ тела:</b> работа с проверками (body checking) и избеганием, формирование более бережного и доброжелательного отношения к себе.
-3. <b>Поведенческая гибкость:</b> поддержка в восстановлении регулярного и сбалансированного питания, так как со временем организм адаптируется к действию препарата.
-4. <b>Долгосрочная перспектива:</b> осознание того, что сама по себе потеря веса не является синонимом ремиссии РПП.
-
-<b>Рост экспертизы в меняющемся мире</b>
-
-Количество клиентских запросов на сочетание медикаментозной поддержки и психотерапии будет только расти. Для специалиста сегодня важно не противопоставлять эти методы, а умело интегрировать их, сохраняя этику и доказательный подход.
-
-Уверенная работа с такими сложными, современными кейсами — это одна из центральных тем, которые мы подробно разбираем на курсе «Психотерапия РПП: продвинутый уровень». 
-
-Мы учим видеть за физиологическими изменениями живого человека и помогаем вам стать тем специалистом, который знает, что делать, когда старые протоколы требуют новых решений.
-
-<b>Узнать больше о программе и записаться на курс:</b>
-https://clck.ru/3TTRAZ
-
-<i>*Агонисты рецепторов ГПП-1 — класс препаратов для лечения диабета 2-го типа и ожирения, которые регулируют уровень глюкозы и чувство насыщения.</i>
+➡️ <b>Ссылка на запись встречи:</b> https://youtu.be/y789UV_aGsQ
 """
 
 logging.basicConfig(
@@ -101,11 +77,7 @@ async def wait_until(run_at: datetime) -> None:
     await asyncio.sleep(delay_seconds)
 
 
-async def send_photo_to_chat(chat_id: int) -> None:
-    await bot.send_photo(
-        chat_id=chat_id,
-        photo=FSInputFile(PHOTO_PATH),
-    )
+async def send_broadcast_message_to_chat(chat_id: int) -> None:
     await bot.send_message(
         chat_id=chat_id,
         text=BROADCAST_CAPTION,
@@ -114,11 +86,8 @@ async def send_photo_to_chat(chat_id: int) -> None:
 
 
 async def send_test_message() -> None:
-    if not PHOTO_PATH.exists():
-        raise FileNotFoundError(f"Photo not found: {PHOTO_PATH}")
-
-    await send_photo_to_chat(settings.ADMIN_ID)
-    logger.info("Test photo message sent to ADMIN_ID=%s.", settings.ADMIN_ID)
+    await send_broadcast_message_to_chat(settings.ADMIN_ID)
+    logger.info("Test message sent to ADMIN_ID=%s.", settings.ADMIN_ID)
 
 
 async def send_broadcast(*, dry_run: bool, include_already_sent: bool) -> None:
@@ -129,15 +98,12 @@ async def send_broadcast(*, dry_run: bool, include_already_sent: bool) -> None:
         logger.info("Dry run recipients: %s", recipients)
         return
 
-    if not PHOTO_PATH.exists():
-        raise FileNotFoundError(f"Photo not found: {PHOTO_PATH}")
-
     sent = 0
     failed = 0
 
     for tg_id in recipients:
         try:
-            await send_photo_to_chat(tg_id)
+            await send_broadcast_message_to_chat(tg_id)
             await add_event(tg_id=tg_id, event_name=BROADCAST_SENT_EVENT)
             sent += 1
             logger.info("Sent to %s", tg_id)
@@ -159,7 +125,7 @@ async def main() -> None:
     parser.add_argument(
         "--now",
         action="store_true",
-        help="Send immediately instead of waiting until 2026-05-08 12:00 MSK.",
+        help="Send immediately instead of waiting until 2026-05-14 12:00 MSK.",
     )
     parser.add_argument(
         "--dry-run",
