@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     RABBITMQ_RETRY_DELAY_MS: int = 30000
 
     # PROXY
+    USE_PROXY: bool = True
     PROXY_IP_OR_DOMAIN: str
     PROXY_PORT: int
     PROXY_LOGIN: str
