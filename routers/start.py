@@ -73,16 +73,18 @@ async def send_questionnaire_link(
     clear_user_story_jobs(tg_id=tg_id)
     await add_event_safely(
         tg_id=tg_id,
-        event_name='Получить файл: "Пенсильванский опросник"',
+        event_name='Получить файл: "чек-листы по раннему выявлению РПП"',
     )
 
-    await callback.message.edit_text(f"Пенсильванский опросник:\n{settings.YDISK_LINK}")
+    await callback.message.edit_text(
+        f"Держите чек-листы по раннему выявлению РПП:\n{settings.YDISK_LINK}"
+    )
     await state.set_state(StoryState.final_stage)
 
 
 async def send_subscription_confirmed_message(message: types.Message) -> None:
     builder = InlineKeyboardBuilder()
-    builder.button(text="Получить опросник 📥", callback_data="track_link_click")
+    builder.button(text="Получить файл 📥", callback_data="track_link_click")
 
     await message.answer(
         text_subscription_is_confirmed,
@@ -135,7 +137,6 @@ async def accept_advertising(callback: types.CallbackQuery, state: FSMContext):
 
 @router.callback_query(StoryState.waiting_for_subscription, F.data == "check_sub")
 async def verify_subscription(callback: types.CallbackQuery, state: FSMContext):
-    from loader import bot
 
     with suppress(TelegramBadRequest):
         await callback.answer()
