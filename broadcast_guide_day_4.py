@@ -14,8 +14,8 @@ from db.models import Events, User
 from loader import bot, logger, redis
 
 MOSCOW_TZ = ZoneInfo("Europe/Moscow")
-DEFAULT_RUN_AT = datetime(2026, 6, 28, 12, 24, tzinfo=MOSCOW_TZ)
-BROADCAST_SENT_EVENT = "mini_guide_day_4_sent_2026_06_28_1224"
+DEFAULT_RUN_AT = datetime(2026, 6, 28, 12, 27, tzinfo=MOSCOW_TZ)
+BROADCAST_SENT_EVENT = "mini_guide_day_4_sent_2026_06_28_1227"
 USER_SEND_DELAY_SECONDS = 0.05
 
 BROADCAST_TEXT = """4️⃣ <b>Компенсаторное поведение (зона повышенного риска)</b>
@@ -122,7 +122,7 @@ async def main() -> None:
     parser.add_argument(
         "--now",
         action="store_true",
-        help="Send immediately instead of waiting until 2026-06-28 12:22 MSK.",
+        help="Send immediately instead of waiting until 2026-06-28 12:27 MSK.",
     )
     parser.add_argument(
         "--dry-run",
