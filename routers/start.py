@@ -178,3 +178,24 @@ async def track_link_click(callback: types.CallbackQuery, state: FSMContext):
         event_name="click_get_questionnaire",
     )
     await send_questionnaire_link(callback, state)
+
+
+@router.callback_query(F.data.startswith("mini_guide_day8_feedback:"))
+async def handle_mini_guide_day8_feedback(callback: types.CallbackQuery):
+    feedback_value = callback.data.split(":", maxsplit=1)[1]
+    allowed_values = {"yes", "no", "harder"}
+
+    if feedback_value not in allowed_values:
+        with suppress(TelegramBadRequest):
+            await callback.answer()
+        return
+
+    await add_event_safely(
+        tg_id=callback.from_user.id,
+        event_name=f"mini_guide_day8_feedback_{feedback_value}",
+    )
+
+    with suppress(TelegramBadRequest):
+        await callback.message.edit_reply_markup(reply_markup=None)
+    with suppress(TelegramBadRequest):
+        await callback.answer("Спасибо за ответ!")
