@@ -1,4 +1,5 @@
 ﻿from contextlib import suppress
+from datetime import UTC, datetime, timedelta
 
 from aiogram import F, Router, types
 from aiogram.exceptions import TelegramBadRequest
@@ -10,15 +11,25 @@ from config import settings
 from data.states import StoryState
 from data.story_content import (
     text_advertising_consent,
+    text_folder_delivery,
     text_hello,
     text_subscription_is_confirmed,
 )
 from db.crud import add_event, add_user
 from exception.db import UserNotFound
 from loader import logger
-from utils.scheduler import clear_user_story_jobs
+from utils.scheduler import (
+    clear_user_story_jobs,
+    schedule_user_job,
+    send_channels_promo,
+)
 
 router = Router(name="start_router")
+
+# Имя события совпадает с RPP_FILE_EVENT в аналитике — иначе шаг воронки
+# "Получили файл" считаться не будет.
+FILE_EVENT_NAME = 'Получить файл: "Пакет инструментов для работы с РПП от Ирины Ушаковой"'
+CHANNELS_PROMO_DELAY = timedelta(minutes=15)
 
 
 def get_subscription_channels() -> tuple[tuple[int, str], ...]:
@@ -123,15 +134,20 @@ async def accept_advertising(callback: types.CallbackQuery, state: FSMContext):
     with suppress(TelegramBadRequest):
         await callback.answer()
 
-    await add_event_safely(
-        tg_id=callback.from_user.id,
-        event_name="advertising_consent",
-    )
-    await state.set_state(StoryState.waiting_for_subscription)
+    tg_id = callback.from_user.id
+    await add_event_safely(tg_id=tg_id, event_name="advertising_consent")
+    await add_event_safely(tg_id=tg_id, event_name=FILE_EVENT_NAME)
+
+    await state.set_state(StoryState.waiting_channels_promo)
     await callback.message.answer(
-        text_hello,
-        reply_markup=build_subscription_keyboard(),
-        parse_mode="HTML",
+        text_folder_delivery.format(link=settings.YDISK_LINK),
+    )
+
+    schedule_user_job(
+        job_id=f"channels_promo:{tg_id}",
+        run_date=datetime.now(UTC) + CHANNELS_PROMO_DELAY,
+        func=send_channels_promo,
+        args=[tg_id],
     )
 
 

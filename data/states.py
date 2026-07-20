@@ -5,6 +5,7 @@ class StoryState(StatesGroup):
     waiting_for_advertising_consent = State()
     waiting_for_subscription = State()
     waiting_15min_pause = State()
+    waiting_channels_promo = State()  # Сюжет от 21.07.2026: пауза перед промо каналов
     waiting_for_extra_materials = State()
     choosing_experience = State()
 

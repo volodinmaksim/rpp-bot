@@ -5,10 +5,12 @@ from aiogram import Bot
 from apscheduler.jobstores.base import JobLookupError
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from config import settings
 from db.crud import add_event
-from loader import bot, dp, scheduler
+from exception.db import UserNotFound
+from loader import bot, dp, logger, scheduler
 
-from data.story_content import text_after_15_minutes
+from data.story_content import text_after_15_minutes, text_channels_promo
 
 
 def schedule_user_job(
@@ -55,6 +57,7 @@ def clear_user_story_jobs(*, tg_id: int) -> None:
         "pro_text_12",
         "pro_reviews",
         "continued_path",
+        "channels_promo",
     )
 
     for prefix in job_prefixes:
@@ -62,6 +65,34 @@ def clear_user_story_jobs(*, tg_id: int) -> None:
             scheduler.remove_job(job_id=f"{prefix}:{tg_id}")
         except JobLookupError:
             continue
+
+
+async def send_channels_promo(chat_id: int):
+    """Промо каналов через 15 минут после выдачи пакета (сюжет от 21.07.2026)."""
+    state = dp.fsm.resolve_context(bot=bot, chat_id=chat_id, user_id=chat_id)
+    current_state = await state.get_state()
+
+    if current_state != StoryState.waiting_channels_promo.state:
+        return
+
+    try:
+        await add_event(
+            tg_id=chat_id,
+            event_name="channels_promo_sent",
+        )
+    except UserNotFound:
+        logger.error("Ошибка: пользователь с tg_id %s не найден в базе.", chat_id)
+
+    await state.set_state(StoryState.final_stage)
+
+    await bot.send_message(
+        chat_id,
+        text_channels_promo.format(
+            school_url=settings.CHAT_URL,
+            irina_url=settings.SECOND_CHAT_URL,
+        ),
+        parse_mode="HTML",
+    )
 
 
 async def send_15min_survey(chat_id: int):
